@@ -18,3 +18,5 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports: 
     fs
+URL: https://github.com/the-Hull/ROAR
+BugReports: https://github.com/the-Hull/ROAR/issues

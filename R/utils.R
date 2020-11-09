@@ -1,0 +1,3 @@
+# utils
+
+`%nin%` <- Negate(`%in%`)

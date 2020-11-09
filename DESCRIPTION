@@ -1,0 +1,20 @@
+Package: ROAR
+Type: Package
+Title: Reproducible and Organized Assimilation Routines
+Version: 0.0.900
+Authors@R: 
+  c(
+    person(given = "Alexander",
+           family = "Hurley",
+           role = c("cre", "aut", "cph"),
+           email = "agl.hurley@gmail.com",
+           comment = c(ORCID = "0000-0002-9641-2805")))
+Maintainer: Alexander G Hurley <agl.hurley@gmail.com>
+Description: Facilitate structured workflows by providing Reproducible and Organized Assimilation Routines. This package is currently specific to the analyses of a large tree ecopyhsiological data base.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    fs

@@ -5,7 +5,10 @@
 #' @param meta_table_path character, csv with some pre-defined headers, including from automated additions from previous runs of this function
 #' @param data_processed_path character, path to `data_processed` folder (i.e. where cleaned data should live)
 #' @param verbose logical, display informative messages and user prompts to proceed?
-#' @param oid
+#' @param oid numeric, length one, row in meta table
+#' @param overwrite should existing scripts be overwritten?
+#' @param template .. not yet implemented, custom template
+#' @param data_list .. not yet implemented, custom data list (referring to meta$column[oid])
 #'
 #' @return
 #' @export
@@ -14,18 +17,20 @@ prep_data <- function(meta_table_path,
                       data_processed_path,
                       verbose = TRUE,
                       overwrite = FALSE,
-                      oid = NULL){
+                      oid = NULL,
+                      template = NULL,
+                      data_list = NULL){
 
 
     # check meta_table_path is csv
     if(!inherits(meta_table_path, "character") ||
         fs::path_ext(meta_table_path) != "csv"){
-        stop("Please provide the meta table as a path (character) to a csv file")
+        usethis::ui_stop("Please provide the meta table as a path (character) to a csv file")
     }
 
     # check if output path is character
     if(!inherits(data_processed_path, "character")){
-        stop("Please provide the output directory as a path (character)")
+        usethis::ui_stop("Please provide the output directory as a path (character)")
     }
 
 
@@ -44,16 +49,18 @@ prep_data <- function(meta_table_path,
 
     # check if any prepping has been done,
     # and if not, add new prep columns to meta
-    if(!any(grepl(pattern = "prep[_].*",
+    if(!any(grepl(pattern = "(^prep[_].*)|(^clean.*)",
                  x = colnames(meta),
                  perl = TRUE))){
+
+        usethis::ui_info("Adding columns to meta table.")
 
         meta <- base::transform(meta,
                   prep_script_path	= NA,
                   prep_file_path = NA,
                   prep_done = NA,
-                  clean_path = NA,
-                  clean_done = NA,
+                  clean_file_path = NA,
+                  clean_done = NA
 
         )
     }
@@ -63,18 +70,50 @@ prep_data <- function(meta_table_path,
     if(!is.null(oid)){
 
         if(nrow(meta) < oid){
-            stop("Please provide an OID found in the table.")
+            usethis::ui_stop("Please provide an OID found in the table.")
         }
 
         if(any(diff(meta$oid) != 1)){
-            stop("Check the your meta table - OIDs are out of order")
+            usethis::ui_stop("Check the your meta table - OIDs are out of order")
         }
 
         start_index <- oid
 
 
     } else {
-        start_index <- min(which(is.na(meta$prep_done)))
+
+        process_columns <- c(
+            "prep_script_path",
+            "prep_file_path",
+            "prep_done",
+            "clean_file_path",
+            "clean_done")
+
+
+
+        # prep_script_path	prep_file_path	prep_done	clean_path	clean_done
+
+
+        if(all(complete.cases(meta[ , process_columns]))){
+
+            usethis::ui_stop("All data sets have been processed. Set oid to a specific value to re-process")
+
+        }
+
+        start_index <- which(complete.cases(meta[ , process_columns]))
+
+
+
+        if(length(start_index) > 0){
+
+            start_index <- start_index + 1
+        } else {
+
+            start_index <- 1
+        }
+
+
+        # start_index <- min(which(is.na(meta$prep_done)))
     }
 
 
@@ -84,29 +123,10 @@ prep_data <- function(meta_table_path,
 
 
     # give informative message if verbose
-    if(verbose){
-
-        message("The following data set will be processed:")
-        print(meta[start_index, c("oid", id_cols, "param")])
-        # message(meta[start_index, c("oid", id_cols, "param")])
-
-        cat("\n")
-        message("This will create:")
-        message("  - parameter parent folder,")
-        message("  - ID sub-folders,")
-        message("  - prepping script\n")
-        message("And modify the meta table at meta_table_path\n")
-
-        user_input <- readline(sprintf("Continue with processing of OID %i? - Y/N:\n", start_index))
-        if(user_input %nin% c("Y", "y", "T", "TRUE")){
-            stop("Aborted processing.")
-        }
-
-    }
 
 
     # check for and create directory in data_processed_path
-    # make out file_path
+    # make out out_dir_path
 
 
     if(length(id_cols) > 1){
@@ -126,14 +146,37 @@ prep_data <- function(meta_table_path,
                  collapse = "_")),
         collapse = "_")
 
-    print(out_dir_path)
-    print(base_file_name)
-    #
+
+    usethis::ui_todo(sprintf("Checking processing for: %s", base_file_name))
+
+
+    if(verbose && is.na(meta[start_index, "prep_script_path"])){
+
+        usethis::ui_todo("The following data set will be processed:")
+        # message(meta[start_index, c("oid", id_cols, "param")])
+
+        cat("\n")
+        usethis::ui_info("If necessary, this will create:")
+        usethis::ui_line("  - parameter parent folder,")
+        usethis::ui_line("  - ID sub-folders,")
+        usethis::ui_line("  - prepping script")
+
+        user_input <- readline(sprintf("Continue with processing of OID %i? - Y/N:\n", start_index))
+        if(user_input %nin% c("Y", "y", "T", "TRUE")){
+            usethis::ui_stop("Aborted processing.")
+        }
+
+    }
+
+
+
+
+
     if(!fs::dir_exists(out_dir_path)){
         fs::dir_create(out_dir_path, recurse = TRUE)
-        message(sprintf("Creating folder(s): (%s)", out_dir_path))
+        usethis::ui_todo(sprintf("Creating folder(s): (%s)", out_dir_path))
     } else {
-        message(sprintf("Output path already exists (%s)", out_dir_path))
+        usethis::ui_info(sprintf("Output path already exists (%s)", out_dir_path))
     }
 
 
@@ -154,19 +197,37 @@ prep_data <- function(meta_table_path,
         text <- FALSE
     }
 
-    templating_expr <- expression( usethis::use_template(template = "prep_script.R",
-                                                         save_as = path_prep_script,
-                                                         data = list(param = current_param,
-                                                                     raw_file = current_file,
-                                                                     save_dir = out_dir_path,
-                                                                     base_file_name = base_file_name,
-                                                                     current_index = start_index,
-                                                                     date_time = Sys.Date(),
-                                                                     excel_file = excel,
-                                                                     text_file = text,
-                                                                     meta_table_path = meta_table_path),
-                                                         package = "ROAR",
-                                                         open = TRUE))
+
+    if(is.null(template) && is.null(data_list)){
+
+        templating_expr <- expression(
+            usethis::use_template(
+                template = "prep_script.R",
+                save_as = path_prep_script,
+                data = list(param = current_param,
+                            raw_file = current_file,
+                            save_dir = out_dir_path,
+                            base_file_name = base_file_name,
+                            current_index = start_index,
+                            date_time = Sys.Date(),
+                            excel_file = excel,
+                            text_file = text,
+                            meta_table_path = meta_table_path),
+                package = "ROAR",
+                open = TRUE))
+    } else {
+
+        templating_expr <- expression({
+            writelines(
+                text = whisker::whisker.render(
+                    template = template,
+                    data = data_list),
+                con = path_prep_script)
+            usethis::edit_file(path_prep_script)
+        })
+    }
+
+
 
 
     # create if doesn't exist
@@ -174,28 +235,56 @@ prep_data <- function(meta_table_path,
     if(!fs::file_exists(path_prep_script) | overwrite){
 
         if(overwrite){
-            message("Prepping script already exists. Overwriting due to overwrite = TRUE")
+            usethis::ui_todo("Prepping script already exists. Overwriting due to overwrite = TRUE")
         }
 
         eval(templating_expr)
+
 
     } else {
 
         if(verbose){
             user_input <- readline(sprintf("Processing script for this OID (%i?) exists. Overwrite? - Y/N:\n", start_index))
             if(user_input %nin% c("Y", "y", "T", "TRUE")){
-                stop("Aborted processing.")
+                usethis::ui_stop("Aborted processing.")
             } else {
-
                 eval(templating_expr)
+
             }
 
+        # not verbose
         } else {
-            stop(sprintf("Processing script for this OID (= %i) exists. Aborting", start_index))
+            if(fs::file_exists(path_prep_script) &&
+               (is.na(meta[start_index, "prep_done"]) || is.na(meta[start_index, "clean_done"]) ) ){
+
+                usethis::ui_todo("Opening prep script to continue processing.")
+                usethis::edit_file(path = path_prep_script)
+            } else {
+
+
+                usethis::ui_info(sprintf("Processing script for this OID (= %i) exists and is completed. ", start_index))
+                user_input <- readline(sprintf("Overwrite or Continue working in the processing script? - O / C / eXit?:\n", start_index))
+                if(user_input %in% c("C", "c")){
+
+                    usethis::ui_todo("Continuing work in prep script.")
+                    usethis::edit_file(path = path_prep_script)
+
+                } else if(user_input %in% c("O", "o")){
+
+                    usethis::ui_todo("Overwriting existing script")
+                    eval(templating_expr)
+
+                } else {
+
+                    usethis::ui_stop("Aborted processing.")
+
+                }
+            }
 
         }
 
     }
+
 
 
     meta[start_index, "prep_script_path"] <- path_prep_script

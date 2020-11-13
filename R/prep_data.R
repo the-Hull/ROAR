@@ -1,16 +1,56 @@
-#' Prepare data for assimilation with useful bare-bones script
+#' Prepare data assimilation with templated scripts
 #'
-#' Drops last id column for nesting level.
+#' `prep_data()` cycles through a meta table (created programmatically or manually) and generates a convenient database-like
+#' folder structure and processing scripts based on templates for each dataset entry in the meta table.
 #'
 #' @param meta_table_path character, csv with some pre-defined headers, including from automated additions from previous runs of this function
 #' @param data_processed_path character, path to `data_processed` folder (i.e. where cleaned data should live)
 #' @param verbose logical, display informative messages and user prompts to proceed?
 #' @param oid numeric, length one, row in meta table
 #' @param overwrite should existing scripts be overwritten?
-#' @param template .. not yet implemented, custom template
-#' @param data_list .. not yet implemented, custom data list (referring to meta$column[oid])
+#' @param template character, path to custom template
+#' @param data_list named list, where names correspond to whisker tokens in template, and values refer to columns in meta table (i.e.  meta$column[oid])
 #'
-#' @return
+#' @details
+#' The meta table must contain one row per dataset that will be assimilated.
+#' It must have at least the following columns, which are used to generate database-like folder structures,
+#' processing scripts from templates, and to populate these with information from the meta table:
+#'
+#'  + **oid**: original meta table entry id
+#'  + **param**: the measured parameter stored in the file
+#'  + **id_ ..**: identifier column(s) prefixed with `id_`.
+#'  + **file_raw**: absolute or project/working directory-relative file path to data set
+#'
+#'  These will be used to generate a folder structure of the form:
+#'
+#'  + `param/id_[1]/id_[2]/.../id_[n-1]`
+#'
+#'  and a processing script within that folder of the form:
+#'
+#'  + `param_id_[1]..id_[n].R`
+#'
+#'  as well as intermediate files/outputs from the populated template script with similar naming conventions.
+#'
+#' The meta table can include as much detail and information as is desired, and entries can be accessed
+#' through token-value combinations in `data_list` in a custom `template`.
+#' The internal template(s) all have access to fixed set of these token-value combinations (see further below),
+#' which are structured following [`mustache` syntax](http://mustache.github.io/) through [whisker::whisker.render()].
+#'
+#'
+#' Tokens that are **always** available and included in the package-internal templates include:
+#' + **param**: parameter corresponding to OID in meta table currently processed,
+#' + **raw_file**: path to raw file corresponding to OID in meta table currently processed,
+#' + **save_dir**: path to (new) directory where all outputs from OID in meta table will be saved,
+#' + **base_file_name**: object and file names in processing script (made from template), based on OID in meta table currently processed,
+#' + **current_index**: OID that is currently processed,
+#' + **date_time**: Sys.Date(),
+#' + **excel_file**: logical flag, is raw file MS Excel-based?,
+#' + **text_file**: logical flag, is raw file text based?
+#' + **meta_table_path**: path to meta table
+#'
+#' To use a custom template with only **internal** tokens, supply an empty list: `data_list = list()`.
+#'
+#' @return Nothing.
 #' @export
 #'
 prep_data <- function(meta_table_path,
@@ -152,7 +192,7 @@ prep_data <- function(meta_table_path,
 
     if(verbose && is.na(meta[start_index, "prep_script_path"])){
 
-        usethis::ui_todo("The following data set will be processed:")
+        # usethis::ui_todo("The following data set will be processed:")
         # message(meta[start_index, c("oid", id_cols, "param")])
 
         cat("\n")
@@ -197,6 +237,16 @@ prep_data <- function(meta_table_path,
         text <- FALSE
     }
 
+    # set up token lits for whisker templating
+    data_list_internal <-  list(param = current_param,
+                                raw_file = current_file,
+                                save_dir = out_dir_path,
+                                base_file_name = base_file_name,
+                                current_index = start_index,
+                                date_time = Sys.Date(),
+                                excel_file = excel,
+                                text_file = text,
+                                meta_table_path = meta_table_path)
 
     if(is.null(template) && is.null(data_list)){
 
@@ -204,25 +254,29 @@ prep_data <- function(meta_table_path,
             usethis::use_template(
                 template = "prep_script.R",
                 save_as = path_prep_script,
-                data = list(param = current_param,
-                            raw_file = current_file,
-                            save_dir = out_dir_path,
-                            base_file_name = base_file_name,
-                            current_index = start_index,
-                            date_time = Sys.Date(),
-                            excel_file = excel,
-                            text_file = text,
-                            meta_table_path = meta_table_path),
+                data = data_list_internal,
                 package = "ROAR",
                 open = TRUE))
     } else {
 
+
+        data_list <- c(lapply(data_list,
+                            function(x) meta[start_index, x]),
+                       data_list_internal)
+
+
+
         templating_expr <- expression({
-            writelines(
-                text = whisker::whisker.render(
-                    template = template,
+
+            template_content <- strsplit(
+                whisker::whisker.render(
+                    usethis:::read_utf8(
+                        template),
                     data = data_list),
-                con = path_prep_script)
+                "\n")[[1]]
+            usethis::write_over(path = path_prep_script,
+                                lines = template_content,
+                                quiet = TRUE)
             usethis::edit_file(path_prep_script)
         })
     }

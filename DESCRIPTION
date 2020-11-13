@@ -10,7 +10,7 @@ Authors@R:
            email = "agl.hurley@gmail.com",
            comment = c(ORCID = "0000-0002-9641-2805")))
 Maintainer: Alexander G Hurley <agl.hurley@gmail.com>
-Description: Facilitate structured workflows by providing Reproducible and Organized Assimilation Routines. This package is currently specific to the analyses of a large tree ecopyhsiological data base.
+Description: Facilitate structured workflows by providing Reproducible and Organized Assimilation Routines. This package is currently specific to the analyses of a large tree ecopyhsiological data base, but can be adjusted through custom templates.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,6 +22,9 @@ Imports:
     readxl,
     utils,
     janitor,
-    tidyr
+    tidyr,
+    whisker
 URL: https://github.com/the-Hull/ROAR
 BugReports: https://github.com/the-Hull/ROAR/issues
+Suggests: 
+    testthat

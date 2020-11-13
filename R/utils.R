@@ -1,5 +1,6 @@
 # utils
-
+#' Negated matching
+#' @export
 `%nin%` <- Negate(`%in%`)
 
 
@@ -18,7 +19,7 @@ update_meta <- function(meta_table_path, idx, update_list, ...){
 
     # check if meta exists
     if(!fs::file_exists(meta_table_path)){
-        usethis::ui_stop("Meta table does not found in the supplied path")
+        usethis::ui_stop("Meta table not found in the supplied path")
     }
 
     # check if idx is numeric and length 1
@@ -70,13 +71,129 @@ update_meta <- function(meta_table_path, idx, update_list, ...){
 
 
 
-check_meta_db <- function(meta_path){
+#' Check if all generated files exist
+#'
+#' @param meta
+#'
+#' @return
+#' @export
+#'
+check_meta_paths <- function(meta){
+
+    # check for "path" columns
+    path_cols <- colnames(meta)[grepl("path", x = colnames(meta))]
+    meta_path_only <- meta[ ,path_cols]
 
 
-    # grab process colnames
 
-    # for each row, check file and script paths exist. Notify if anything is out of sync, and offer to launch
-    # prep_data() with that oid
+    not_na_paths <- !apply(meta_path_only, MARGIN = c(2), is.na)
+    existing_files <- apply(meta_path_only, MARGIN = c(2), fs::file_exists)
+
+
+    meta_path_only[not_na_paths & existing_files] <- "confirmed"
+    meta_path_only[not_na_paths & !existing_files] <- "issue"
+    meta_path_only[!not_na_paths & !existing_files] <- NA
+
+    assessment <- cbind(oid = meta$oid, meta_path_only)
+
+    return(assessment)
+
+}
+
+
+#' Print internal template to console
+#'
+#' @param template_name character, name of internal tempalte (currently only `prep_script.R` )
+#'
+#' @return all available internal templates
+#' @export
+#'
+view_template <- function(template_name = "prep_script.R"){
+
+    templates <- fs::path_file(fs::dir_ls(fs::path_package("ROAR", "templates")))
+
+    if(template_name %nin% templates){
+        usethis::ui_stop(sprintf("The template is misspelled or does not exist yet. \n
+                         Current ROAR templates are: %s", templates))
+    }
+
+
+    usethis::ui_code_block(readLines(fs::path_package("ROAR", "templates", template_name)))
+
+    return(templates)
+
+}
+
+
+#' Split up strings in meta table
+#'
+#' For multi-column data adjustments/details, e.g. definition of time stamp columns, a meta string
+#' can be provided in a single column of the meta table (e.g. `time_stamp_columns`), preventing the
+#' meta table from cluttering.
+#' This is can be leveraged for in templates to construct objects from meta strings.
+#' A meta string can be set to either `NA`, a single value (`"string"`) or a multi-column string
+#' (`"string1/string2/string3"`).
+#' This function splits these strings, and allows e.g. pasting multiple columns together.
+#'
+#' @param string
+#'
+#' @return character, (split) `string`
+#' @export
+parse_meta_strings <- function(string){
+
+    if(!is.character(string)){
+        usethis::ui_stop("Please provide string as character")
+    }
+
+    string <- unlist(strsplit(string, split = "/"))
+
+    # clean formatting
+    string <- gsub(pattern = "(^[ ]*|[ ]*$)", replacement = "",x = string, perl = TRUE)
+    return(string)
+
+}
+
+
+
+#' Convenience function to create a universal time stamp
+#'
+#' Grab one or more time-defining columns and create a universal time stamp,
+#' in character format, ideally as "YYYY-mm-dd HH:MM:SS)
+#' This stamp can be re-read in subsequent steps, and the time zone adjusted as necessary.
+#'
+#' @param x data frame which contains `timestamp_cols`
+#' @param timestamp_cols character, column(s) defining time stamp and must be in `x`
+#'
+#' @return x, with additional column `timestamp_roar`
+#' @export
+make_timestamp <- function(x, timestamp_cols){
+
+    if(is.na(timestamp_cols)){
+        return(x)
+    } else if(!is.character(timestamp_cols)){
+    # check that timestamps are provided in char
+        usethis::ui_stop("Please provide timestamp_cols as character.")
+    }
+
+
+
+    # check if cols exist in df
+    if(!all(timestamp_cols %in% colnames(x))){
+        usethis::ui_stop("Time stamp column(s) are not (all) found in the data frame")
+    }
+
+    if(length(timestamp_cols == 1)){
+        x$timestamp_roar <-  as.character(x[ , timestamp_cols])
+    } else {
+        x$timestamp_roar <- paste(x[ , timestamp_cols], collapse = "-")
+    }
+
+
+    return(x)
+
 
 
 }
+
+
+

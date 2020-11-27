@@ -182,10 +182,14 @@ make_timestamp <- function(x, timestamp_cols){
         usethis::ui_stop("Time stamp column(s) are not (all) found in the data frame")
     }
 
-    if(length(timestamp_cols == 1)){
-        x$timestamp_roar <-  as.character(x[ , timestamp_cols])
+    if(length(timestamp_cols)  == 1){
+        x$timestamp_roar <-  as.character(x[ , timestamp_cols, drop = TRUE])
+        message("length 1")
     } else {
-        x$timestamp_roar <- paste(x[ , timestamp_cols], collapse = "-")
+        message("length > 1")
+        x$timestamp_roar <- apply(x[ ,timestamp_cols],
+                                  MARGIN = 1,
+                                  function(x) paste(as.character(x), sep = "-"))
     }
 
 
@@ -193,6 +197,45 @@ make_timestamp <- function(x, timestamp_cols){
 
 
 
+}
+
+# https://stackoverflow.com/a/48798064
+# https://creativecommons.org/licenses/by-sa/3.0/
+#
+#
+
+#' Skip read
+#'
+#' This function reads a `.csv` while skipping specified rows (e.g. meta table included beneath headers).
+#' Note, that `stringsAsFactors = FALSE` is assumed.
+#'
+#' @param skip_internal numeric, vector of rows to skip **below** headers. These row numbers correspond to
+#' the raw input, i.e. if headers are in row one, and additional information in row 2, `skip_internal = 2`.
+#' @param ... additional arguments passed to `read.csv()`.
+#'
+#' @return data.frame read from `path`
+#' @export
+#'
+readskip.csv <-  function(path, ..., skip_internal = NA){
+
+    if(!rlang::inherits_any(path, c("character", "fs_path"))){
+        usethis::ui_stop("Provide path to read in file as character / fs path")
+    }
+
+    if (!is.na(skip_internal)) {
+
+        tmp <-  textConnection(readLines(path)[-skip_internal])
+
+
+        # tmpFile = tempfile()
+        # on.exit(unlink(tmpFile))
+        # writeLines(tmp,tmpFile)
+        # file = tmpFile
+
+        path <- tmp
+    }
+    dframe <- read.csv(path, ..., stringsAsFactors = FALSE)
+    return(dframe)
 }
 
 

@@ -23,7 +23,9 @@ Imports:
     utils,
     janitor,
     tidyr,
-    whisker
+    whisker,
+    readr,
+    dplyr
 URL: https://github.com/the-Hull/ROAR
 BugReports: https://github.com/the-Hull/ROAR/issues
 Suggests: 

@@ -9,7 +9,7 @@
 #' @param oid numeric, length one, row in meta table
 #' @param overwrite should existing scripts be overwritten?
 #' @param template character, path to custom template
-#' @param data_list named list, where names correspond to whisker tokens in template, and values refer to columns in meta table (i.e.  meta$column[oid])
+#' @param data_list named list, where names correspond to whisker tokens in template, and values refer to columns in meta table (i.e.  `meta$column[oid]`)
 #'
 #' @details
 #' The meta table must contain one row per dataset that will be assimilated.
@@ -49,6 +49,12 @@
 #' + **meta_table_path**: path to meta table
 #'
 #' To use a custom template with only **internal** tokens, supply an empty list: `data_list = list()`.
+#'
+#' If there are multiple values or columns in the data, that need to be represented in the meta table,
+#' split the column names by forward dashes (`/`).
+#' For example, if a wide table needs to be split into long format, but a unique observation is defined through
+#' multiple columns, (e.g. site, plot, tree), these values can be listed as `site/plot/tree` in a aptly named meta table column for
+#' later use in a template.
 #'
 #' @return Nothing.
 #' @export
@@ -260,9 +266,13 @@ prep_data <- function(meta_table_path,
     } else {
 
 
+        # make list with custom and internal values
+        # append flag list for external
         data_list <- c(lapply(data_list,
                             function(x) meta[start_index, x]),
                        data_list_internal)
+        data_list <- c(data_list,
+                       make_flag_list(data_list))
 
 
 
@@ -286,10 +296,12 @@ prep_data <- function(meta_table_path,
 
     # create if doesn't exist
     # if exists, don't do anything - unless in verbose mode, where choice is given.
-    if(!fs::file_exists(path_prep_script) | overwrite){
+    if(!fs::file_exists(path_prep_script)){
 
         if(overwrite){
             usethis::ui_todo("Prepping script already exists. Overwriting due to overwrite = TRUE")
+        } else if(!overwrite){
+            usethis::ui_stop("Prep script already exists - set overwrite = TRUE, or manually delete the script.")
         }
 
         eval(templating_expr)

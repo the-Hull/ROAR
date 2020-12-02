@@ -18,6 +18,6 @@ can be provided in a single column of the meta table (e.g. \code{time_stamp_colu
 meta table from cluttering.
 This is can be leveraged for in templates to construct objects from meta strings.
 A meta string can be set to either \code{NA}, a single value (\code{"string"}) or a multi-column string
-(\code{"string1/string2/string3"}).
+(\code{"string1/string2/string3/string with space4"}).
 This function splits these strings, and allows e.g. pasting multiple columns together.
 }

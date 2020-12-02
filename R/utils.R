@@ -132,7 +132,7 @@ view_template <- function(template_name = "prep_script.R"){
 #' meta table from cluttering.
 #' This is can be leveraged for in templates to construct objects from meta strings.
 #' A meta string can be set to either `NA`, a single value (`"string"`) or a multi-column string
-#' (`"string1/string2/string3"`).
+#' (`"string1/string2/string3/string with space4"`).
 #' This function splits these strings, and allows e.g. pasting multiple columns together.
 #'
 #' @param string
@@ -211,12 +211,13 @@ make_timestamp <- function(x, timestamp_cols){
 #'
 #' @param skip_internal numeric, vector of rows to skip **below** headers. These row numbers correspond to
 #' the raw input, i.e. if headers are in row one, and additional information in row 2, `skip_internal = 2`.
-#' @param ... additional arguments passed to `read.csv()`.
+#' @param sep character, delimiter value for tables (e.g. `,` `:`, `\t`)
+#' @param ... additional arguments passed to `read_delim()`.
 #'
 #' @return data.frame read from `path`
 #' @export
 #'
-readskip.csv <-  function(path, ..., skip_internal = NA){
+readskip_delim <-  function(path, sep = ",", ..., skip_internal = NA){
 
     if(!rlang::inherits_any(path, c("character", "fs_path"))){
         usethis::ui_stop("Provide path to read in file as character / fs path")
@@ -224,19 +225,43 @@ readskip.csv <-  function(path, ..., skip_internal = NA){
 
     if (!is.na(skip_internal)) {
 
-        tmp <-  textConnection(readLines(path)[-skip_internal])
+        # tmp <-  textConnection(readLines(path)[-skip_internal])
+        tmp <-  readLines(path)[-skip_internal]
 
 
-        # tmpFile = tempfile()
-        # on.exit(unlink(tmpFile))
-        # writeLines(tmp,tmpFile)
+        tmpFile = tempfile()
+        on.exit(unlink(tmpFile))
+        writeLines(tmp,tmpFile)
         # file = tmpFile
 
-        path <- tmp
+        path <- tmpFile
     }
-    dframe <- read.csv(path, ..., stringsAsFactors = FALSE)
+    dframe <- readr::read_delim(path, delim = sep, ...)
     return(dframe)
 }
 
 
+#' Create list of conditional flags
+#'
+#' This function identifies whether an item in a named list is `NA` or not,
+#' and creates a named list with respective `TRUE` / `FALSE` values.
+#' This list can be appended to an existing whisker tokens list, and used in templates for conditional
+#' generation of text snippets and code chunks.
+#' The names in the generated list are of the form `previousname_roar_flag`
+#'
+#' @param tokenlist, named list with at least 1 item
+#'
+#' @return list, with one item per `tokenlist` item
+#' @export
+#'
+make_flag_list <- function(tokenlist){
 
+    if(length(tokenlist) < 1){
+        usethis::ui_stop("Please provide 1-row data.frame")
+    }
+
+    logicals <- lapply(tokenlist, function(x) !is.na(x))
+    logicals <- setNames(logicals, paste0(names(tokenlist), "_roar_flag"))
+    return(logicals)
+
+}

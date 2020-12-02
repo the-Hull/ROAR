@@ -27,7 +27,7 @@ prep_data(
 
 \item{template}{character, path to custom template}
 
-\item{data_list}{named list, where names correspond to whisker tokens in template, and values refer to columns in meta table (i.e.  meta$column\link{oid})}
+\item{data_list}{named list, where names correspond to whisker tokens in template, and values refer to columns in meta table (i.e.  \code{meta$column[oid]})}
 }
 \value{
 Nothing.
@@ -78,4 +78,10 @@ Tokens that are \strong{always} available and included in the package-internal t
 }
 
 To use a custom template with only \strong{internal} tokens, supply an empty list: \code{data_list = list()}.
+
+If there are multiple values or columns in the data, that need to be represented in the meta table,
+split the column names by forward dashes (\code{/}).
+For example, if a wide table needs to be split into long format, but a unique observation is defined through
+multiple columns, (e.g. site, plot, tree), these values can be listed as \code{site/plot/tree} in a aptly named meta table column for
+later use in a template.
 }

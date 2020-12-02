@@ -2,9 +2,10 @@
 
 export("%nin%")
 export(check_meta_paths)
+export(make_flag_list)
 export(make_timestamp)
 export(parse_meta_strings)
 export(prep_data)
-export(readskip.csv)
+export(readskip_delim)
 export(update_meta)
 export(view_template)

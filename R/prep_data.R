@@ -82,7 +82,7 @@ prep_data <- function(meta_table_path,
 
 
     # read file and grab id columns
-    meta <- read.csv(file = meta_table_path,
+    meta <- read.table(file = meta_table_path,
                      header = TRUE,
                      fileEncoding="UTF-8-BOM",
                      stringsAsFactors = FALSE)

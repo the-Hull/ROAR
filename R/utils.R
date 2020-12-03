@@ -28,7 +28,7 @@ update_meta <- function(meta_table_path, idx, update_list, ...){
     }
 
     # read meta and adjust colnames
-    meta <- read.csv(file = meta_table_path,
+    meta <- read.table(file = meta_table_path,
                      header = TRUE,
                      fileEncoding="UTF-8-BOM",
                      stringsAsFactors = FALSE)

@@ -3,7 +3,7 @@
 #' `prep_data()` cycles through a meta table (created programmatically or manually) and generates a convenient database-like
 #' folder structure and processing scripts based on templates for each dataset entry in the meta table.
 #'
-#' @param meta_table_path character, csv with some pre-defined headers, including from automated additions from previous runs of this function
+#' @param meta_table_path character, txt (tab delimited) with some pre-defined headers, including from automated additions from previous runs of this function
 #' @param data_processed_path character, path to `data_processed` folder (i.e. where cleaned data should live)
 #' @param verbose logical, display informative messages and user prompts to proceed?
 #' @param oid numeric, length one, row in meta table

@@ -146,13 +146,13 @@ prep_data <- function(meta_table_path,
 
         }
 
-        start_index <- which(complete.cases(meta[ , process_columns]))
+        start_index <- which(!complete.cases(meta[ , process_columns]))
 
 
 
         if(length(start_index) > 0){
 
-            start_index <- start_index + 1
+            start_index <- min(start_index)
         } else {
 
             start_index <- 1
@@ -355,7 +355,7 @@ prep_data <- function(meta_table_path,
 
     meta[start_index, "prep_script_path"] <- path_prep_script
 
-    write.csv(x = meta,
+    write.table(x = meta,
               file = meta_table_path,
               row.names = FALSE)
 

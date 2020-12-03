@@ -15,7 +15,7 @@ prep_data(
 )
 }
 \arguments{
-\item{meta_table_path}{character, csv with some pre-defined headers, including from automated additions from previous runs of this function}
+\item{meta_table_path}{character, txt (tab delimited) with some pre-defined headers, including from automated additions from previous runs of this function}
 
 \item{data_processed_path}{character, path to \code{data_processed} folder (i.e. where cleaned data should live)}
 

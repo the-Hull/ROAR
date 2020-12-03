@@ -60,7 +60,7 @@ update_meta <- function(meta_table_path, idx, update_list, ...){
     meta[idx, names(update_list)] <- update_list[[1]]
 
     # write meta back to meta_path
-    write.csv(x = meta,
+    write.table(x = meta,
               file = meta_table_path,
               row.names = FALSE)
 
@@ -82,6 +82,11 @@ check_meta_paths <- function(meta){
 
     # check for "path" columns
     path_cols <- colnames(meta)[grepl("path", x = colnames(meta))]
+    if(length(path_cols) == 0){
+
+        usethis::ui_stop("No processing has been done yet.")
+    }
+
     meta_path_only <- meta[ ,path_cols]
 
 

@@ -70,8 +70,8 @@ prep_data <- function(meta_table_path,
 
     # check meta_table_path is csv
     if(!inherits(meta_table_path, "character") ||
-        fs::path_ext(meta_table_path) != "csv"){
-        usethis::ui_stop("Please provide the meta table as a path (character) to a csv file")
+        fs::path_ext(meta_table_path) != "txt"){
+        usethis::ui_stop("Please provide the meta table as a path (character) to a txt file (tab delimited)")
     }
 
     # check if output path is character

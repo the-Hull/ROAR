@@ -62,8 +62,8 @@ update_meta <- function(meta_table_path, idx, update_list, ...){
     # write meta back to meta_path
     write.table(x = meta,
               file = meta_table_path,
-              row.names = FALSE)
-
+              row.names = FALSE,
+              sep="\t")
 
 }
 
